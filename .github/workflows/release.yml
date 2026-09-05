@@ -198,16 +198,16 @@ jobs:
             ## J-Title Converter - Release ${{ needs.prepare-version.outputs.version }}
 
             ### Downloads
-            - **Android APK**: \j-title-converter-${{ needs.prepare-version.outputs.version }}.apk\ (Ready to sideload on any Android device)
-            - **iOS App Package**: \j-title-converter-${{ needs.prepare-version.outputs.version }}-ios.zip\ (Payload for sideloading / AltStore / Sideloadly)
-            - **Web Bundle**: \j-title-converter-${{ needs.prepare-version.outputs.version }}-web.tar.gz\ (Static web build)
+            - **Android APK**: `j-title-converter-${{ needs.prepare-version.outputs.version }}.apk` (Ready to sideload on any Android device)
+            - **iOS App Package**: `j-title-converter-${{ needs.prepare-version.outputs.version }}-ios.zip` (Payload for sideloading / AltStore / Sideloadly)
+            - **Web Bundle**: `j-title-converter-${{ needs.prepare-version.outputs.version }}-web.tar.gz` (Static web build)
 
             ### Docker Deployment
             Deploy directly using the included multi-stage Dockerfile:
-            \\\ash
+            ```bash
             docker build -t j-title-converter:${{ needs.prepare-version.outputs.version }} .
             docker run -p 3000:3000 j-title-converter:${{ needs.prepare-version.outputs.version }}
-            \\\
+            ```
           files: release-assets/*
           draft: false
           prerelease: false
