@@ -1,15 +1,21 @@
 name: Build & Release
 
 on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       custom_version:
         description: "Custom version override (format: YYYY.MM.DD.HHMM). Leave blank to use current timestamp."
         required: false
         default: ""
-  push:
-    tags:
-      - "v*"
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
