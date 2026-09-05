@@ -179,7 +179,7 @@ Automated workflows are located in `.github/workflows/`:
     - iOS `Info.plist` (`CFBundleShortVersionString` and `CFBundleVersion`)
   - **Builds & Publishes**:
     - **Android APK**: `j-title-converter-<version>.apk` (ready to sideload)
-    - **iOS Bundle**: `j-title-converter-<version>-ios.zip` (for AltStore / Sideloadly)
+    - **iOS IPA**: `j-title-converter-<version>.ipa` (ready to install via AltStore, Sideloadly, TrollStore, etc.)
     - **Web Bundle**: `j-title-converter-<version>-web.tar.gz`
     - Creates the GitHub Release with automated changelog notes and attached binary downloads.
 

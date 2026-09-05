@@ -148,17 +148,19 @@ jobs:
               CODE_SIGNING_REQUIRED=NO
           fi
 
-      - name: Package iOS App Bundle
+      - name: Package iOS IPA
         run: |
           mkdir -p artifacts
-          cd build/App.xcarchive/Products/Applications
-          zip -r "../../../../artifacts/j-title-converter-${{ needs.prepare-version.outputs.version }}-ios.zip" App.app
+          mkdir -p build/Payload
+          cp -r build/App.xcarchive/Products/Applications/App.app build/Payload/
+          cd build
+          zip -r "../artifacts/j-title-converter-${{ needs.prepare-version.outputs.version }}.ipa" Payload
 
       - name: Upload iOS Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ios-package
-          path: artifacts/*.zip
+          name: ios-ipa
+          path: artifacts/*.ipa
 
   publish-release:
     name: Publish GitHub Release
@@ -192,7 +194,7 @@ jobs:
       - name: Download iOS Artifact
         uses: actions/download-artifact@v4
         with:
-          name: ios-package
+          name: ios-ipa
           path: release-assets
 
       - name: Create GitHub Release
@@ -205,7 +207,7 @@ jobs:
 
             ### Downloads
             - **Android APK**: `j-title-converter-${{ needs.prepare-version.outputs.version }}.apk` (Ready to sideload on any Android device)
-            - **iOS App Package**: `j-title-converter-${{ needs.prepare-version.outputs.version }}-ios.zip` (Payload for sideloading / AltStore / Sideloadly)
+            - **iOS IPA**: `j-title-converter-${{ needs.prepare-version.outputs.version }}.ipa` (Ready to install via AltStore, Sideloadly, TrollStore, etc.)
             - **Web Bundle**: `j-title-converter-${{ needs.prepare-version.outputs.version }}-web.tar.gz` (Static web build)
 
             ### Docker Deployment
