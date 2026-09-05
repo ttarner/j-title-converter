@@ -1,6 +1,6 @@
 {
   "name": "j-title-converter",
-  "version": "1.0.0",
+  "version": "2026.09.05.2245",
   "description": "Convert Japanese song titles to Romaji and find official Western titles from streaming links, OCR screenshots, or Japanese text.",
   "private": true,
   "type": "module",
@@ -10,9 +10,15 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "cap:sync": "cap sync",
+    "build:mobile": "vite build && cap sync",
+    "version:sync": "node scripts/set-version.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "dotenv": "^17.2.3",
@@ -28,6 +34,7 @@
     "wanakana": "^5.3.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",

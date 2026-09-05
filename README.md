@@ -130,13 +130,58 @@ If developing in Visual Studio Code, press `F5` or open the **Run and Debug** pa
 
 ## Scripts
 
-| Command         | Description                                                      |
-| :-------------- | :--------------------------------------------------------------- |
-| `npm run dev`   | Start development server with Vite hot module replacement        |
-| `npm run build` | Build production client with Vite and bundle server with esbuild |
-| `npm start`     | Run compiled production bundle (`dist/server.cjs`)               |
-| `npm run lint`  | Run TypeScript type checking (`tsc --noEmit`)                    |
-| `npm run clean` | Remove `dist/` build artifacts                                   |
+| Command                | Description                                                                  |
+| :--------------------- | :--------------------------------------------------------------------------- |
+| `npm run dev`          | Start development server with Vite hot module replacement                    |
+| `npm run build`        | Build production client with Vite and bundle server with esbuild             |
+| `npm start`            | Run compiled production bundle (`dist/server.cjs`)                           |
+| `npm run lint`         | Run TypeScript type checking (`tsc --noEmit`)                                |
+| `npm run build:mobile` | Build Vite frontend and sync native assets to Android and iOS                |
+| `npm run cap:sync`     | Copy web assets and update Capacitor native plugins                          |
+| `npm run version:sync` | Apply `YYYY.MM.DD.HHMM` timestamp version across package.json, Android & iOS |
+| `npm run clean`        | Remove `dist/` build artifacts                                               |
+
+---
+
+## Mobile Apps (Android APK & iOS IPA)
+
+The application supports standalone execution on mobile devices via [Capacitor](https://capacitorjs.com/):
+
+- **Universal Service Layer**: In web mode, requests use `POST /api/convert` to Express. In mobile mode (`Capacitor.isNativePlatform()`), conversion runs **directly on the device** with `CapacitorHttp` natively bypassing browser CORS restrictions.
+- **Android**:
+  ```bash
+  npm run build:mobile
+  npx cap open android
+  ```
+  Builds debug or release `.apk` using Android Studio or Gradle (`./gradlew assembleRelease`).
+- **iOS**:
+  ```bash
+  npm run build:mobile
+  npx cap open ios
+  ```
+  Opens Xcode to run in the iOS Simulator or archive for distribution.
+
+---
+
+## DevOps & Automated GitHub Releases
+
+Automated workflows are located in `.github/workflows/`:
+
+- **CI (`ci.yml`)**:
+  - Triggers on Pull Requests and pushes to `main`.
+  - Runs TypeScript linting, production bundling, and Docker container verification.
+
+- **Release (`release.yml`)**:
+  - Triggered manually from GitHub Actions (**Run workflow**) or by pushing a release tag (`v*`).
+  - **Timestamp Versioning (`YYYY.MM.DD.HHMM`)**: Automatically generates the version timestamp at build time (e.g. `2026.09.06.0045`) and stamps it across:
+    - `package.json` (`version`)
+    - Android `build.gradle` (`versionName` and auto-incrementing `versionCode`)
+    - iOS `Info.plist` (`CFBundleShortVersionString` and `CFBundleVersion`)
+  - **Builds & Publishes**:
+    - **Android APK**: `j-title-converter-<version>.apk` (ready to sideload)
+    - **iOS Bundle**: `j-title-converter-<version>-ios.zip` (for AltStore / Sideloadly)
+    - **Web Bundle**: `j-title-converter-<version>-web.tar.gz`
+    - Creates the GitHub Release with automated changelog notes and attached binary downloads.
 
 ---
 

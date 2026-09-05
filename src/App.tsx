@@ -6,6 +6,7 @@ import { ResultCard } from './components/ResultCard';
 import { SearchProgress } from './components/SearchProgress';
 import { HistoryList } from './components/HistoryList';
 import { ConversionResponse, HistoryItem } from './types';
+import { convertSongTitle } from './services/conversionService';
 import { AlertCircle } from 'lucide-react';
 
 export default function App() {
@@ -164,19 +165,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch('/api/convert', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params),
-      });
-
-      const data: ConversionResponse = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to convert song title.');
-      }
+      const data = await convertSongTitle(params);
 
       setConversionResult(data);
       addToHistory(data);

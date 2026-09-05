@@ -1,7 +1,7 @@
 import { MusicMatch } from '../src/types';
 
 // MusicBrainz contact from environment or fallback
-const MB_CONTACT = process.env.MUSICBRAINZ_CONTACT || 'dev-contact@music-app.internal';
+const MB_CONTACT = (typeof process !== 'undefined' && process.env?.MUSICBRAINZ_CONTACT) || 'contact@example.com';
 const MB_USER_AGENT = `JapTitleConverter/1.0.0 ( ${MB_CONTACT} )`;
 
 // Spotify Token Cache
@@ -9,8 +9,8 @@ let spotifyAccessToken: string | null = null;
 let spotifyTokenExpiry = 0;
 
 async function getSpotifyToken(): Promise<string | null> {
-  const clientId = process.env.SPOTIFY_CLIENT_ID;
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
+  const clientId = typeof process !== 'undefined' ? process.env?.SPOTIFY_CLIENT_ID : undefined;
+  const clientSecret = typeof process !== 'undefined' ? process.env?.SPOTIFY_CLIENT_SECRET : undefined;
 
   if (!clientId || !clientSecret) return null;
 
@@ -19,7 +19,9 @@ async function getSpotifyToken(): Promise<string | null> {
   }
 
   try {
-    const authHeader = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const authHeader = typeof Buffer !== 'undefined'
+      ? Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+      : btoa(`${clientId}:${clientSecret}`);
     const res = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
