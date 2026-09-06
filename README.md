@@ -161,6 +161,22 @@ The application supports standalone execution on mobile devices via [Capacitor](
   ```
   Opens Xcode to run in the iOS Simulator or archive for distribution.
 
+### System Share Sheet & Deep Linking
+
+J-Title Converter supports sharing directly from other apps:
+
+- **Android (APK)**:
+  - **Direct Share Menu**: J-Title Converter appears natively in the Android system Share sheet (`ACTION_SEND`).
+  - **Streaming Links**: Tap **Share** inside Spotify, YouTube, YouTube Music, or Apple Music and select **J-Title Converter** — the app opens and resolves the track automatically.
+  - **Screenshots & Images**: Share a screenshot from your Gallery or photo viewer to run instant OCR and extract song details.
+  - **Text & Lyrics**: Highlight Japanese text in any app or browser and tap **Share** to find the romanization and western titles.
+
+- **iOS (IPA)**:
+  - **Custom URL Scheme**: Registered scheme `jtitle://`. Supports:
+    - `jtitle://convert?url=<encoded_url>` (e.g. `jtitle://convert?url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F...`)
+    - `jtitle://search?q=<title>&artist=<artist>`
+  - **iOS Shortcuts**: Easily bind an iOS Share Sheet action that takes the shared link or text and opens `jtitle://convert?url=ShortcutInput`.
+
 ---
 
 ## DevOps & Automated GitHub Releases

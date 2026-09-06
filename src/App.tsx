@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import { Header } from './components/Header';
 import { SearchAndUpload } from './components/SearchAndUpload';
 import { PresetsBar } from './components/PresetsBar';
@@ -8,6 +10,84 @@ import { HistoryList } from './components/HistoryList';
 import { ConversionResponse, HistoryItem } from './types';
 import { convertSongTitle } from './services/conversionService';
 import { AlertCircle } from 'lucide-react';
+
+interface SharedData {
+  action: string;
+  type: 'text' | 'image';
+  value: string;
+  subject?: string;
+}
+
+interface ShareReceiverPlugin {
+  getPendingShare(): Promise<{ hasData: boolean; data?: SharedData }>;
+  clearPendingShare(): Promise<{ cleared: boolean }>;
+  addListener(
+    eventName: 'shareReceived',
+    listenerFunc: (data: SharedData) => void
+  ): Promise<any>;
+}
+
+const ShareReceiver = registerPlugin<ShareReceiverPlugin>('ShareReceiver');
+
+// Helper to parse query parameters from URL for iOS Shortcuts, deep links & direct navigation
+const parseQueryFromUrl = (fullUrl?: string): {
+  streamingUrl?: string;
+  text?: string;
+  artist?: string;
+} | null => {
+  if (typeof window === 'undefined') return null;
+
+  const targetUrl = fullUrl || window.location.href;
+  let searchStr = '';
+
+  const qIndex = targetUrl.indexOf('?');
+  if (qIndex !== -1) {
+    searchStr = targetUrl.substring(qIndex);
+  } else if (targetUrl.includes('#') && targetUrl.indexOf('?') !== -1) {
+    searchStr = targetUrl.substring(targetUrl.indexOf('?'));
+  }
+
+  if (!searchStr) return null;
+
+  try {
+    const params = new URLSearchParams(searchStr);
+
+    // Check explicit URL / link params
+    const rawUrl = params.get('url') || params.get('link') || params.get('stream');
+    if (rawUrl) {
+      return { streamingUrl: rawUrl.trim() };
+    }
+
+    // Check 'q' (general query which could be a streaming link OR Japanese song name)
+    const q = params.get('q');
+    const artist = params.get('artist') || undefined;
+
+    if (q) {
+      const trimmed = q.trim();
+      if (
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.includes('spotify.com') ||
+        trimmed.includes('apple.com') ||
+        trimmed.includes('youtube.com') ||
+        trimmed.includes('youtu.be')
+      ) {
+        return { streamingUrl: trimmed };
+      }
+      return { text: trimmed, artist };
+    }
+
+    // Check 'text' or 'title' param
+    const text = params.get('text') || params.get('title');
+    if (text) {
+      return { text: text.trim(), artist };
+    }
+  } catch (e) {
+    console.warn('Error parsing URL query:', e);
+  }
+
+  return null;
+};
 
 export default function App() {
   const [conversionResult, setConversionResult] = useState<ConversionResponse | null>(null);
@@ -214,8 +294,58 @@ export default function App() {
 
   // Initial load: Check URL query parameters (e.g. for iOS Shortcuts).
   // Only convert if a query was passed in the URL.
+  // Handler for content shared from other apps (links, text, screenshots)
+  const handleIncomingShare = (shared: SharedData) => {
+    if (!shared || !shared.value) return;
+
+    if (shared.type === 'image') {
+      setSelectedPresetText('');
+      setSelectedPresetArtist('');
+      setSelectedPresetUrl('');
+      executeConversion({ imageBase64: shared.value });
+      return;
+    }
+
+    if (shared.type === 'text') {
+      const rawText = shared.value.trim();
+
+      // Check if the shared text contains a Spotify / Apple Music / YouTube URL
+      const urlRegex = /(https?:\/\/[^\s]+)/i;
+      const urlMatch = rawText.match(urlRegex);
+
+      if (urlMatch) {
+        const detectedUrl = urlMatch[1];
+        if (
+          detectedUrl.includes('spotify.com') ||
+          detectedUrl.includes('apple.com') ||
+          detectedUrl.includes('youtube.com') ||
+          detectedUrl.includes('youtu.be')
+        ) {
+          setSelectedPresetUrl(detectedUrl);
+          setSelectedPresetText('');
+          setSelectedPresetArtist('');
+          executeConversion({ streamingUrl: detectedUrl });
+          return;
+        }
+      }
+
+      // If no streaming link is found, treat as text query (Japanese song title / artist)
+      setSelectedPresetUrl('');
+      setSelectedPresetText(rawText);
+      if (shared.subject && shared.subject.trim() !== rawText) {
+        setSelectedPresetArtist(shared.subject.trim());
+        executeConversion({ text: rawText, artist: shared.subject.trim() });
+      } else {
+        executeConversion({ text: rawText });
+      }
+    }
+  };
+
+  // Initial load: Check URL query parameters, iOS Shortcuts / deep links, and shared content from other apps
   useEffect(() => {
     const initialQuery = parseUrlQuery();
+    // 1. Check browser / web URL query parameters
+    const initialQuery = parseQueryFromUrl();
     if (initialQuery) {
       if (initialQuery.streamingUrl) {
         setSelectedPresetUrl(initialQuery.streamingUrl);
@@ -228,8 +358,10 @@ export default function App() {
     }
 
     // Support browser Back/Forward navigation with query URLs
+    // 2. Support browser Back/Forward navigation with query URLs
     const handlePopState = () => {
       const popQuery = parseUrlQuery();
+      const popQuery = parseQueryFromUrl();
       if (popQuery) {
         if (popQuery.streamingUrl) {
           setSelectedPresetUrl(popQuery.streamingUrl);
@@ -241,9 +373,63 @@ export default function App() {
         }
       }
     };
+    window.addEventListener('popstate', handlePopState);
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+    // 3. Deep link handler via @capacitor/app (e.g. jtitle://convert?url=... or jtitle://search?q=...)
+    let appUrlRemoveHandle: (() => void) | null = null;
+    try {
+      CapacitorApp.addListener('appUrlOpen', (event) => {
+        if (event?.url) {
+          const parsed = parseQueryFromUrl(event.url);
+          if (parsed?.streamingUrl) {
+            setSelectedPresetUrl(parsed.streamingUrl);
+            executeConversion({ streamingUrl: parsed.streamingUrl });
+          } else if (parsed?.text) {
+            setSelectedPresetText(parsed.text);
+            if (parsed.artist) setSelectedPresetArtist(parsed.artist);
+            executeConversion({ text: parsed.text, artist: parsed.artist });
+          }
+        }
+      }).then((handle) => {
+        appUrlRemoveHandle = () => handle.remove();
+      }).catch(() => {});
+    } catch (e) {
+      // Ignored if outside Capacitor runtime
+    }
+
+    // 4. Android native share handler (for ACTION_SEND text, streaming links, and images)
+    let shareRemoveHandle: (() => void) | null = null;
+    if (Capacitor.isNativePlatform()) {
+      // Check if launched via share intent (cold start)
+      ShareReceiver.getPendingShare()
+        .then((res) => {
+          if (res?.hasData && res.data) {
+            handleIncomingShare(res.data);
+            ShareReceiver.clearPendingShare().catch(() => {});
+          }
+        })
+        .catch((e) => console.warn('ShareReceiver.getPendingShare error:', e));
+
+      // Listen for runtime shares while app is alive in background (warm/hot start)
+      ShareReceiver.addListener('shareReceived', (data) => {
+        if (data) {
+          handleIncomingShare(data);
+          ShareReceiver.clearPendingShare().catch(() => {});
+        }
+      })
+        .then((handle) => {
+          shareRemoveHandle = () => handle.remove();
+        })
+        .catch(() => {});
+    }
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (appUrlRemoveHandle) appUrlRemoveHandle();
+      if (shareRemoveHandle) shareRemoveHandle();
+    };
   }, []);
 
   const handleSelectPreset = (presetTitle: string, presetArtist?: string) => {
