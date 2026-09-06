@@ -10,6 +10,18 @@ A full-stack application designed to romanize Japanese song titles and discover 
 
 Supports direct Japanese text input, song links from **Spotify**, **Apple Music**, and **YouTube**, as well as mobile screenshots via **Tesseract OCR**.
 
+## Spotify Userscript
+
+The repository includes [`userscripts/spotify-j-title-converter.user.js`](userscripts/spotify-j-title-converter.user.js), which adds **Send to J-Title Converter** immediately before Spotify's **Share** action in track context menus.
+
+Install it with a userscript manager such as Tampermonkey or Violentmonkey:
+
+1. Open the `.user.js` file in GitHub and click **Raw**, or open the file locally in your browser.
+2. Confirm the installation in your userscript manager.
+3. Refresh `open.spotify.com`, open a track's context menu, and select **Send to J-Title Converter**.
+
+The action opens the hosted web app in a new tab with the Spotify track URL preloaded. Change `CONVERTER_URL` in the userscript if you use a self-hosted instance.
+
 ---
 
 ## Features
@@ -184,7 +196,7 @@ J-Title Converter supports sharing directly from other apps:
     - **How to Use**:
       1. **Install Shortcut**: Tap [this iCloud link](https://www.icloud.com/shortcuts/f671b173f28247dcab593350160671cc) on your iPhone or iPad and tap **Add Shortcut**.
       2. **Share from Music App**: While listening to or viewing a song in **Spotify**, **Apple Music**, or **YouTube Music**, tap **Share** (e.g., `•••` &rarr; `Share`).
-      3. **Select Shortcut**: In the iOS Share Sheet, select **Find song** (you may need to scroll down or tap *Edit Actions* to favorite it).
+      3. **Select Shortcut**: In the iOS Share Sheet, select **Find song** (you may need to scroll down or tap _Edit Actions_ to favorite it).
       4. **Instant Result**: Safari will open the web app preloaded with your song and immediately present the romanized title, English Western title, and anime soundtrack info!
   - **Native iOS App (IPA)**:
     - **Custom URL Scheme**: Registered scheme `jtitle://`. Supports:
@@ -241,9 +253,11 @@ The application can be hosted 100% serverless as a pure static Single Page Appli
 2. **Automatic Deployment**:
    - Every push to the `main` branch automatically triggers `.github/workflows/deploy-pages.yml`, which compiles the static SPA with `npm run build:spa` and deploys it to `https://<username>.github.io/<repository>/`.
 3. **Manual Local Build**:
+
    ```bash
    npm run build:spa
    ```
+
    Generates a pure static `dist/` directory with relative asset paths (`./assets/...`) compatible with GitHub Pages, Cloudflare Pages, Netlify, Vercel, or standard static web servers.
 
 4. **Instant iOS Integration (Share Sheet & Shortcuts)**:
