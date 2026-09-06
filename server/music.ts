@@ -134,12 +134,14 @@ async function searchMusicBrainz(query: string): Promise<MusicMatch[]> {
     const timeout = setTimeout(() => controller.abort(), 3500);
 
     const url = `https://musicbrainz.org/ws/2/recording?query=${encodeURIComponent(query)}&fmt=json&limit=5`;
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (typeof window === 'undefined') {
+      headers['User-Agent'] = MB_USER_AGENT;
+    }
+
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: {
-        'User-Agent': MB_USER_AGENT,
-        Accept: 'application/json',
-      },
+      headers,
     });
     clearTimeout(timeout);
 

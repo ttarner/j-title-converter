@@ -3,8 +3,14 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const isClientOnly = mode === 'client-only' || process.env.VITE_CLIENT_ONLY === 'true';
+
   return {
+    base: './',
+    define: {
+      'import.meta.env.VITE_CLIENT_ONLY': JSON.stringify(isClientOnly ? 'true' : 'false'),
+    },
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

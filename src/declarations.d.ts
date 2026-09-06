@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 declare module 'kuroshiro' {
   export interface ConvertOptions {
     to?: 'hiragana' | 'katakana' | 'romaji';

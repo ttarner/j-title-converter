@@ -343,7 +343,6 @@ export default function App() {
 
   // Initial load: Check URL query parameters, iOS Shortcuts / deep links, and shared content from other apps
   useEffect(() => {
-    const initialQuery = parseUrlQuery();
     // 1. Check browser / web URL query parameters
     const initialQuery = parseQueryFromUrl();
     if (initialQuery) {
@@ -357,10 +356,8 @@ export default function App() {
       }
     }
 
-    // Support browser Back/Forward navigation with query URLs
     // 2. Support browser Back/Forward navigation with query URLs
     const handlePopState = () => {
-      const popQuery = parseUrlQuery();
       const popQuery = parseQueryFromUrl();
       if (popQuery) {
         if (popQuery.streamingUrl) {
@@ -374,9 +371,6 @@ export default function App() {
       }
     };
     window.addEventListener('popstate', handlePopState);
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
     // 3. Deep link handler via @capacitor/app (e.g. jtitle://convert?url=... or jtitle://search?q=...)
     let appUrlRemoveHandle: (() => void) | null = null;
     try {

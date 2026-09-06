@@ -132,8 +132,9 @@ async function executeClientSideConversion(params: ConvertRequestParams): Promis
  */
 export async function convertSongTitle(params: ConvertRequestParams): Promise<ConversionResponse> {
   const isNative = Capacitor.isNativePlatform();
+  const isClientOnly = import.meta.env.VITE_CLIENT_ONLY === 'true' || isNative;
 
-  if (isNative) {
+  if (isClientOnly) {
     return executeClientSideConversion(params);
   }
 

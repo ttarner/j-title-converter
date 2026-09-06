@@ -134,6 +134,7 @@ If developing in Visual Studio Code, press `F5` or open the **Run and Debug** pa
 | :--------------------- | :--------------------------------------------------------------------------- |
 | `npm run dev`          | Start development server with Vite hot module replacement                    |
 | `npm run build`        | Build production client with Vite and bundle server with esbuild             |
+| `npm run build:spa`    | Build client-side only static SPA for serverless hosting / GitHub Pages      |
 | `npm start`            | Run compiled production bundle (`dist/server.cjs`)                           |
 | `npm run lint`         | Run TypeScript type checking (`tsc --noEmit`)                                |
 | `npm run build:mobile` | Build Vite frontend and sync native assets to Android and iOS                |
@@ -215,6 +216,21 @@ The production server serves the optimized Vite build and handles all API routes
 ---
 
 ## Deployment
+
+### Deploy to GitHub Pages (Static Client-Side SPA)
+
+The application can be hosted 100% serverless as a pure static Single Page Application (SPA) on **GitHub Pages**:
+
+1. **Enable GitHub Pages**:
+   - Go to your repository on GitHub &rarr; **Settings** &rarr; **Pages**.
+   - Under **Build and deployment** &rarr; **Source**, select **GitHub Actions** (instead of "Deploy from a branch").
+2. **Automatic Deployment**:
+   - Every push to the `main` branch automatically triggers `.github/workflows/deploy-pages.yml`, which compiles the static SPA with `npm run build:spa` and deploys it to `https://<username>.github.io/<repository>/`.
+3. **Manual Local Build**:
+   ```bash
+   npm run build:spa
+   ```
+   Generates a pure static `dist/` directory with relative asset paths (`./assets/...`) compatible with GitHub Pages, Cloudflare Pages, Netlify, Vercel, or standard static web servers.
 
 ### Deploy with Docker
 

@@ -91,7 +91,7 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
 
       const oembedUrl = `https://open.spotify.com/oembed?url=${encodeURIComponent(canonicalUrl)}`;
       const resp = await fetch(oembedUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' },
+        headers: typeof window === 'undefined' ? { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } : undefined,
       });
 
       if (resp.ok) {
@@ -126,7 +126,7 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
         // Query iTunes API (country=jp to get original Japanese metadata when available)
         const itunesResp = await fetch(
           `https://itunes.apple.com/lookup?id=${trackId}&country=jp&entity=song`,
-          { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } }
+          { headers: typeof window === 'undefined' ? { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } : undefined }
         );
 
         if (itunesResp.ok) {
@@ -138,7 +138,9 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
               serviceName: 'Apple Music',
               title: track.trackName || track.collectionName || '',
               artist: track.artistName || undefined,
-              artworkUrl: track.artworkUrl100?.replace('100x100bb', '600x600bb'),
+              artworkUrl: track.artworkUrl100
+                ? track.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg')
+                : undefined,
               url,
             };
           }
@@ -175,7 +177,7 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
 
       const ytOembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(cleanUrl)}&format=json`;
       const ytResp = await fetch(ytOembedUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' },
+        headers: typeof window === 'undefined' ? { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } : undefined,
       });
 
       if (ytResp.ok) {
