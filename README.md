@@ -9,6 +9,7 @@
 A full-stack application designed to romanize Japanese song titles and discover their official Western/international releases across streaming platforms and global music databases.
 
 Supports direct Japanese text input, song links from **Spotify**, **Apple Music**, and **YouTube**, as well as mobile screenshots via **Tesseract OCR**.
+Supports direct Japanese text input, song links from **Spotify**, **Apple Music**, **YouTube**, and **Shazam**, as well as mobile screenshots via **Tesseract OCR**.
 
 ## Spotify Userscript
 
@@ -33,6 +34,7 @@ The action opens the hosted web app in a new tab with the Spotify track URL prel
   - Automatically identifies English/foreign loanwords in Katakana (e.g. `プラスティック・ラブ` &rarr; `Plastic Love`, `シャケナベイベー` &rarr; `Shake na baby`).
 - **Streaming Link Resolver**:
   - Paste any track URL from **Spotify**, **Apple Music**, or **YouTube / YouTube Music** to extract clean track titles, artist names, album art, and streaming previews without typing Japanese characters manually.
+  - Paste any track URL from **Spotify**, **Apple Music**, **YouTube / YouTube Music**, or **Shazam** to extract clean track titles, artist names, album art, and streaming previews without typing Japanese characters manually.
 - **Screenshot OCR with Noise Filtering**:
   - Upload mobile screenshots from Spotify, Apple Music, or YouTube Music.
   - Uses [Tesseract.js](https://tesseract.projectnaptha.com/) with bilingual `jpn+eng` recognition models.
@@ -181,21 +183,31 @@ J-Title Converter supports sharing directly from other apps:
 - **Android (APK)**:
   - **Direct Share Menu**: J-Title Converter appears natively in the Android system Share sheet (`ACTION_SEND`).
   - **Streaming Links**: Tap **Share** inside Spotify, YouTube, YouTube Music, or Apple Music and select **J-Title Converter** — the app opens and resolves the track automatically.
+  - **Streaming Links**: Tap **Share** inside Spotify, YouTube, YouTube Music, Apple Music, or Shazam and select **J-Title Converter** — the app opens and resolves the track automatically.
   - **Screenshots & Images**: Share a screenshot from your Gallery or photo viewer to run instant OCR and extract song details.
   - **Text & Lyrics**: Highlight Japanese text in any app or browser and tap **Share** to find the romanization and western titles.
 
+- **iOS (IPA)**:
+  - **Custom URL Scheme**: Registered scheme `jtitle://`. Supports:
+    - `jtitle://convert?url=<encoded_url>` (e.g. `jtitle://convert?url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F...`)
+    - `jtitle://search?q=<title>&artist=<artist>`
+  - **iOS Shortcuts**: Easily bind an iOS Share Sheet action that takes the shared link or text and opens `jtitle://convert?url=ShortcutInput`.
 - **iOS (Shortcuts & Native IPA)**:
   - **Official iOS Shortcut — "On the Fly" via GitHub Pages (No Install Required)**:
     Install the ready-to-use [**Find song iOS Shortcut**](https://www.icloud.com/shortcuts/f671b173f28247dcab593350160671cc) to convert tracks directly from your iOS Share Sheet to the live [GitHub Pages Web App](https://ttarner.github.io/j-title-converter/) on the fly.
     - **Supported Apps**: **Spotify**, **Apple Music**, and **YouTube / YouTube Music**.
+    - **Supported Apps**: **Spotify**, **Apple Music**, **YouTube / YouTube Music**, and **Shazam**.
     - **How it Works**:
       1. When you share a track from Spotify, Apple Music, or YouTube Music, the shortcut receives the link via the iOS Share Sheet (`ExtensionInput`).
+      1. When you share a track from Spotify, Apple Music, YouTube Music, or Shazam, the shortcut receives the link via the iOS Share Sheet (`ExtensionInput`).
       2. It detects the URL, URL-encodes it, and appends it as a query parameter to the GitHub Pages web app (`https://ttarner.github.io/j-title-converter/?q=<encoded_url>`).
       3. It automatically opens the web app in Safari / Safari View Controller.
       4. The client-side application detects the incoming URL query parameter, resolves the track metadata, transliterates the Japanese characters (Kanji/Kana &rarr; Hepburn Romaji), searches for official Western release titles across MusicBrainz and iTunes, checks for Anime OST associations, and auto-scrolls straight to the results.
     - **How to Use**:
       1. **Install Shortcut**: Tap [this iCloud link](https://www.icloud.com/shortcuts/f671b173f28247dcab593350160671cc) on your iPhone or iPad and tap **Add Shortcut**.
       2. **Share from Music App**: While listening to or viewing a song in **Spotify**, **Apple Music**, or **YouTube Music**, tap **Share** (e.g., `•••` &rarr; `Share`).
+      2. **Share from Music App**: While listening to or viewing a song in **Spotify**, **Apple Music**, **YouTube Music**, or **Shazam**, tap **Share** (e.g., `•••` &rarr; `Share`).
+      3. **Select Shortcut**: In the iOS Share Sheet, select **Find song** (you may need to scroll down or tap *Edit Actions* to favorite it).
       3. **Select Shortcut**: In the iOS Share Sheet, select **Find song** (you may need to scroll down or tap _Edit Actions_ to favorite it).
       4. **Instant Result**: Safari will open the web app preloaded with your song and immediately present the romanized title, English Western title, and anime soundtrack info!
   - **Native iOS App (IPA)**:
@@ -262,6 +274,7 @@ The application can be hosted 100% serverless as a pure static Single Page Appli
 
 4. **Instant iOS Integration (Share Sheet & Shortcuts)**:
    The GitHub Pages SPA supports URL query parameters (`?q=<song_link_or_title>` or `?url=<streaming_url>`). iOS users can install the [**Find song iOS Shortcut**](https://www.icloud.com/shortcuts/f671b173f28247dcab593350160671cc) to convert songs on the fly straight from the Share menu in **Spotify**, **Apple Music**, or **YouTube Music** without installing any app.
+   The GitHub Pages SPA supports URL query parameters (`?q=<song_link_or_title>` or `?url=<streaming_url>`). iOS users can install the [**Find song iOS Shortcut**](https://www.icloud.com/shortcuts/f671b173f28247dcab593350160671cc) to convert songs on the fly straight from the Share menu in **Spotify**, **Apple Music**, **YouTube Music**, or **Shazam** without installing any app.
 
 ### Deploy with Docker
 

@@ -50,6 +50,12 @@ const SAMPLE_LINKS = [
     url: 'https://www.youtube.com/watch?v=CwkzK-F0Y00',
     note: '紅蓮華 (Demon Slayer OP1)',
   },
+  {
+    name: 'Shazam: Aimer',
+    service: 'shazam',
+    url: 'https://www.shazam.com/song/1694666925/deep-down',
+    note: 'Deep down (Chainsaw Man ED9)',
+  },
 ];
 
 export const SearchAndUpload: React.FC<SearchAndUploadProps> = ({
@@ -106,6 +112,9 @@ export const SearchAndUpload: React.FC<SearchAndUploadProps> = ({
       trimmed.includes('music.youtube.com')
     ) {
       return { name: 'YouTube Music', color: 'text-red-400 bg-red-950/60 border-red-800/60' };
+    }
+    if (trimmed.includes('shazam.com') || trimmed.includes('shz.am')) {
+      return { name: 'Shazam', color: 'text-sky-400 bg-sky-950/60 border-sky-800/60' };
     }
     return null;
   }, [streamingUrl]);
@@ -301,7 +310,7 @@ export const SearchAndUpload: React.FC<SearchAndUploadProps> = ({
               type="url"
               value={streamingUrl}
               onChange={(e) => setStreamingUrl(e.target.value)}
-              placeholder="Paste Spotify, Apple Music, or YouTube link..."
+              placeholder="Paste Spotify, Apple Music, YouTube, or Shazam link..."
               disabled={isLoading}
               className="w-full pl-10 pr-24 py-3 bg-zinc-950 text-white placeholder-zinc-500 text-xs sm:text-sm rounded-xl border border-zinc-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 focus:outline-none transition-all"
             />
@@ -356,7 +365,7 @@ export const SearchAndUpload: React.FC<SearchAndUploadProps> = ({
                 </span>
               ) : (
                 <span className="text-[11px] text-zinc-500">
-                  Supports Spotify, Apple Music & YouTube Music track links
+                  Supports Spotify, Apple Music, YouTube & Shazam track links
                 </span>
               )}
             </div>

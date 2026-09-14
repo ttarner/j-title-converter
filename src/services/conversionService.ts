@@ -82,7 +82,12 @@ async function executeClientSideConversion(params: ConvertRequestParams): Promis
       musicMatches.unshift({
         title: streamingTrackInfo.title,
         artist: streamingTrackInfo.artist || inputArtist || 'Unknown Artist',
-        source: streamingTrackInfo.service === 'spotify' ? 'Spotify' : 'iTunes',
+        source:
+          streamingTrackInfo.service === 'spotify'
+            ? 'Spotify'
+            : streamingTrackInfo.service === 'shazam'
+            ? 'Shazam'
+            : 'iTunes',
         artworkUrl: streamingTrackInfo.artworkUrl,
         externalUrl: streamingTrackInfo.url,
         confidence: 'high',

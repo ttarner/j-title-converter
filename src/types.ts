@@ -3,7 +3,7 @@ export interface MusicMatch {
   artist: string;
   album?: string;
   releaseDate?: string;
-  source: 'MusicBrainz' | 'iTunes' | 'Spotify' | 'Heuristic';
+  source: 'MusicBrainz' | 'iTunes' | 'Spotify' | 'Heuristic' | 'Shazam';
   artworkUrl?: string;
   previewUrl?: string;
   externalUrl?: string;
@@ -29,8 +29,8 @@ export interface TransliterationResult {
 }
 
 export interface StreamingTrackInfo {
-  service: 'spotify' | 'apple_music' | 'youtube';
-  serviceName: 'Spotify' | 'Apple Music' | 'YouTube Music';
+  service: 'spotify' | 'apple_music' | 'youtube' | 'shazam';
+  serviceName: 'Spotify' | 'Apple Music' | 'YouTube Music' | 'Shazam';
   title: string;
   artist?: string;
   artworkUrl?: string;

@@ -122,7 +122,7 @@ async function startServer() {
         if (!resolved || !resolved.title) {
           return res.status(422).json({
             success: false,
-            error: 'Could not retrieve song details from the provided streaming link. Please check that the track URL is valid and publicly accessible on Spotify, Apple Music, or YouTube.',
+            error: 'Could not retrieve song details from the provided streaming link. Please check that the track URL is valid and publicly accessible on Spotify, Apple Music, YouTube, or Shazam.',
           });
         }
 
@@ -182,7 +182,12 @@ async function startServer() {
           musicMatches.unshift({
             title: streamingTrackInfo.title,
             artist: streamingTrackInfo.artist || inputArtist || 'Unknown Artist',
-            source: streamingTrackInfo.service === 'spotify' ? 'Spotify' : 'iTunes',
+            source:
+              streamingTrackInfo.service === 'spotify'
+                ? 'Spotify'
+                : streamingTrackInfo.service === 'shazam'
+                ? 'Shazam'
+                : 'iTunes',
             artworkUrl: streamingTrackInfo.artworkUrl,
             externalUrl: streamingTrackInfo.url,
             confidence: 'high',

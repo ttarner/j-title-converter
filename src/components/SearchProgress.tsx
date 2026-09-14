@@ -56,7 +56,7 @@ export const SearchProgress: React.FC<SearchProgressProps> = ({
     if (sourceType === 'streaming_link') {
       return {
         label: 'Fetch Streaming Metadata',
-        detail: 'Querying Spotify / Apple Music / YouTube API',
+        detail: 'Querying Spotify / Apple Music / YouTube / Shazam API',
         icon: Link2,
       };
     }

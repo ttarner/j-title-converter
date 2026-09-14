@@ -1,6 +1,6 @@
 export interface StreamingTrackInfo {
-  service: 'spotify' | 'apple_music' | 'youtube';
-  serviceName: 'Spotify' | 'Apple Music' | 'YouTube Music';
+  service: 'spotify' | 'apple_music' | 'youtube' | 'shazam';
+  serviceName: 'Spotify' | 'Apple Music' | 'YouTube Music' | 'Shazam';
   title: string;
   artist?: string;
   artworkUrl?: string;
@@ -191,6 +191,109 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
           artworkUrl: ytData.thumbnail_url || undefined,
           url,
         };
+      }
+    }
+
+    // 4. Shazam
+    if (url.includes('shazam.com') || url.includes('shz.am')) {
+      let trackId: string | null = null;
+      let slug: string | null = null;
+
+      try {
+        const parsed = new URL(url);
+        // Matches e.g. /song/1694666925/deep-down, /track/593845878/残響散歌, /song/1694666925, /track/593845878
+        const match = parsed.pathname.match(/(?:^|\/)(?:song|track)\/(\d+)(?:\/([^/?#]+))?/i);
+        if (match) {
+          trackId = match[1];
+          if (match[2]) {
+            try {
+              slug = decodeURIComponent(match[2]);
+            } catch {
+              slug = match[2];
+            }
+          }
+        }
+      } catch {
+        const match = url.match(/(?:song|track)\/(\d+)(?:\/([^/?#\s]+))?/i);
+        if (match) {
+          trackId = match[1];
+          if (match[2]) {
+            try {
+              slug = decodeURIComponent(match[2]);
+            } catch {
+              slug = match[2];
+            }
+          }
+        }
+      }
+
+      // Step 1: If trackId exists, query iTunes lookup API (since modern Shazam IDs match Apple Music / iTunes song IDs)
+      if (trackId) {
+        try {
+          const itunesResp = await fetch(
+            `https://itunes.apple.com/lookup?id=${trackId}&country=jp&entity=song`,
+            { headers: typeof window === 'undefined' ? { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } : undefined }
+          );
+
+          if (itunesResp.ok) {
+            const itunesData: any = await itunesResp.json();
+            if (itunesData.results && itunesData.results.length > 0) {
+              const track = itunesData.results[0];
+              return {
+                service: 'shazam',
+                serviceName: 'Shazam',
+                title: track.trackName || track.collectionName || '',
+                artist: track.artistName || undefined,
+                artworkUrl: track.artworkUrl100
+                  ? track.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg')
+                  : undefined,
+                url,
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('Shazam iTunes lookup error:', err);
+        }
+      }
+
+      // Step 2: If ID lookup didn't match (e.g. legacy Shazam internal ID) but we have a slug, search iTunes
+      if (slug) {
+        const cleanedSlug = slug.replace(/[-_]+/g, ' ').trim();
+        if (cleanedSlug) {
+          try {
+            const itunesSearchResp = await fetch(
+              `https://itunes.apple.com/search?term=${encodeURIComponent(cleanedSlug)}&country=jp&entity=song&limit=1`,
+              { headers: typeof window === 'undefined' ? { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } : undefined }
+            );
+
+            if (itunesSearchResp.ok) {
+              const itunesSearchData: any = await itunesSearchResp.json();
+              if (itunesSearchData.results && itunesSearchData.results.length > 0) {
+                const track = itunesSearchData.results[0];
+                return {
+                  service: 'shazam',
+                  serviceName: 'Shazam',
+                  title: track.trackName || cleanedSlug,
+                  artist: track.artistName || undefined,
+                  artworkUrl: track.artworkUrl100
+                    ? track.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg')
+                    : undefined,
+                  url,
+                };
+              }
+            }
+          } catch (err) {
+            console.warn('Shazam iTunes search error:', err);
+          }
+
+          // Fallback: return cleaned slug as title candidate
+          return {
+            service: 'shazam',
+            serviceName: 'Shazam',
+            title: cleanedSlug,
+            url,
+          };
+        }
       }
     }
   } catch (error) {

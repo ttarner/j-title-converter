@@ -70,7 +70,9 @@ const parseQueryFromUrl = (fullUrl?: string): {
         trimmed.includes('spotify.com') ||
         trimmed.includes('apple.com') ||
         trimmed.includes('youtube.com') ||
-        trimmed.includes('youtu.be')
+        trimmed.includes('youtu.be') ||
+        trimmed.includes('shazam.com') ||
+        trimmed.includes('shz.am')
       ) {
         return { streamingUrl: trimmed };
       }
@@ -138,7 +140,9 @@ export default function App() {
           trimmed.includes('spotify.com') ||
           trimmed.includes('apple.com') ||
           trimmed.includes('youtube.com') ||
-          trimmed.includes('youtu.be')
+          trimmed.includes('youtu.be') ||
+          trimmed.includes('shazam.com') ||
+          trimmed.includes('shz.am')
         ) {
           return { streamingUrl: trimmed };
         }
@@ -319,7 +323,9 @@ export default function App() {
           detectedUrl.includes('spotify.com') ||
           detectedUrl.includes('apple.com') ||
           detectedUrl.includes('youtube.com') ||
-          detectedUrl.includes('youtu.be')
+          detectedUrl.includes('youtu.be') ||
+          detectedUrl.includes('shazam.com') ||
+          detectedUrl.includes('shz.am')
         ) {
           setSelectedPresetUrl(detectedUrl);
           setSelectedPresetText('');
