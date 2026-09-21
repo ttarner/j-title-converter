@@ -50,6 +50,18 @@ const extractStreamingUrlFromText = (input: string): string | null => {
   return null;
 };
 
+const parseSharedTrackText = (input: string, streamingUrl: string): { text?: string; artist?: string } => {
+  const prefix = input.slice(0, input.indexOf(streamingUrl)).trim();
+  if (!prefix) return {};
+
+  const parts = prefix.split(/\s+(?:di|by)\s+|\s+[-|/]\s+/i).map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    return { text: parts[0], artist: parts.slice(1).join(' ') };
+  }
+
+  return { text: prefix };
+};
+
 // Helper to parse query parameters from URL for iOS Shortcuts, deep links & direct navigation
 const parseQueryFromUrl = (fullUrl?: string): {
   streamingUrl?: string;
@@ -321,10 +333,11 @@ export default function App() {
       // Check if the shared text contains a Spotify / Apple Music / YouTube / Shazam URL
       const detectedUrl = extractStreamingUrlFromText(rawText);
       if (detectedUrl) {
+        const sharedTrack = parseSharedTrackText(rawText, detectedUrl);
         setSelectedPresetUrl(detectedUrl);
-        setSelectedPresetText('');
-        setSelectedPresetArtist('');
-        executeConversion({ streamingUrl: detectedUrl });
+        setSelectedPresetText(sharedTrack.text || '');
+        setSelectedPresetArtist(sharedTrack.artist || '');
+        executeConversion({ ...sharedTrack, streamingUrl: detectedUrl });
         return;
       }
 

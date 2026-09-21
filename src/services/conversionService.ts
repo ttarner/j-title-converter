@@ -35,15 +35,17 @@ async function executeClientSideConversion(params: ConvertRequestParams): Promis
     const resolved = await resolveStreamingLink(potentialUrl);
 
     if (!resolved || !resolved.title) {
-      throw new Error(
-        'Could not retrieve song details from the streaming link. Please verify that the track is public.'
-      );
-    }
-
-    streamingTrackInfo = resolved;
-    inputText = resolved.title;
-    if (!inputArtist && resolved.artist) {
-      inputArtist = resolved.artist;
+      if (!inputText) {
+        throw new Error(
+          'Could not retrieve song details from the streaming link. Please verify that the track is public.'
+        );
+      }
+    } else {
+      streamingTrackInfo = resolved;
+      inputText = resolved.title;
+      if (!inputArtist && resolved.artist) {
+        inputArtist = resolved.artist;
+      }
     }
   } else if (imageBase64 && !inputText) {
     sourceType = 'image_ocr';

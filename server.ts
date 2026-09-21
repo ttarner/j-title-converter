@@ -120,16 +120,19 @@ async function startServer() {
         const resolved = await resolveStreamingLink(potentialUrl);
 
         if (!resolved || !resolved.title) {
-          return res.status(422).json({
-            success: false,
-            error: 'Could not retrieve song details from the provided streaming link. Please check that the track URL is valid and publicly accessible on Spotify, Apple Music, YouTube, or Shazam.',
-          });
-        }
-
-        streamingTrackInfo = resolved;
-        inputText = resolved.title;
-        if (!inputArtist && resolved.artist) {
-          inputArtist = resolved.artist;
+          if (!inputText) {
+            return res.status(422).json({
+              success: false,
+              error: 'Could not retrieve song details from the provided streaming link. Please check that the track URL is valid and publicly accessible on Spotify, Apple Music, YouTube, or Shazam.',
+            });
+          }
+          console.warn('Streaming link metadata unavailable; using shared title text as fallback.');
+        } else {
+          streamingTrackInfo = resolved;
+          inputText = resolved.title;
+          if (!inputArtist && resolved.artist) {
+            inputArtist = resolved.artist;
+          }
         }
       } else if (imageBase64 && !inputText) {
         // If image is provided and no direct text is specified, run OCR
