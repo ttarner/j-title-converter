@@ -29,6 +29,27 @@ interface ShareReceiverPlugin {
 
 const ShareReceiver = registerPlugin<ShareReceiverPlugin>('ShareReceiver');
 
+const extractStreamingUrlFromText = (input: string): string | null => {
+  if (!input || typeof input !== 'string') return null;
+
+  const matches = input.matchAll(/https?:\/\/[^\s<>"]+/gi);
+  for (const match of matches) {
+    const candidate = match[0].replace(/[),.;!?]+$/g, '').trim();
+    if (
+      candidate.includes('spotify.com') ||
+      candidate.includes('apple.com') ||
+      candidate.includes('youtube.com') ||
+      candidate.includes('youtu.be') ||
+      candidate.includes('shazam.com') ||
+      candidate.includes('shz.am')
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+};
+
 // Helper to parse query parameters from URL for iOS Shortcuts, deep links & direct navigation
 const parseQueryFromUrl = (fullUrl?: string): {
   streamingUrl?: string;
@@ -64,17 +85,9 @@ const parseQueryFromUrl = (fullUrl?: string): {
 
     if (q) {
       const trimmed = q.trim();
-      if (
-        trimmed.startsWith('http://') ||
-        trimmed.startsWith('https://') ||
-        trimmed.includes('spotify.com') ||
-        trimmed.includes('apple.com') ||
-        trimmed.includes('youtube.com') ||
-        trimmed.includes('youtu.be') ||
-        trimmed.includes('shazam.com') ||
-        trimmed.includes('shz.am')
-      ) {
-        return { streamingUrl: trimmed };
+      const detectedUrl = extractStreamingUrlFromText(trimmed);
+      if (detectedUrl) {
+        return { streamingUrl: detectedUrl };
       }
       return { text: trimmed, artist };
     }
@@ -134,17 +147,9 @@ export default function App() {
 
       if (q) {
         const trimmed = q.trim();
-        if (
-          trimmed.startsWith('http://') ||
-          trimmed.startsWith('https://') ||
-          trimmed.includes('spotify.com') ||
-          trimmed.includes('apple.com') ||
-          trimmed.includes('youtube.com') ||
-          trimmed.includes('youtu.be') ||
-          trimmed.includes('shazam.com') ||
-          trimmed.includes('shz.am')
-        ) {
-          return { streamingUrl: trimmed };
+        const detectedUrl = extractStreamingUrlFromText(trimmed);
+        if (detectedUrl) {
+          return { streamingUrl: detectedUrl };
         }
         return { text: trimmed, artist };
       }
@@ -313,26 +318,14 @@ export default function App() {
     if (shared.type === 'text') {
       const rawText = shared.value.trim();
 
-      // Check if the shared text contains a Spotify / Apple Music / YouTube URL
-      const urlRegex = /(https?:\/\/[^\s]+)/i;
-      const urlMatch = rawText.match(urlRegex);
-
-      if (urlMatch) {
-        const detectedUrl = urlMatch[1];
-        if (
-          detectedUrl.includes('spotify.com') ||
-          detectedUrl.includes('apple.com') ||
-          detectedUrl.includes('youtube.com') ||
-          detectedUrl.includes('youtu.be') ||
-          detectedUrl.includes('shazam.com') ||
-          detectedUrl.includes('shz.am')
-        ) {
-          setSelectedPresetUrl(detectedUrl);
-          setSelectedPresetText('');
-          setSelectedPresetArtist('');
-          executeConversion({ streamingUrl: detectedUrl });
-          return;
-        }
+      // Check if the shared text contains a Spotify / Apple Music / YouTube / Shazam URL
+      const detectedUrl = extractStreamingUrlFromText(rawText);
+      if (detectedUrl) {
+        setSelectedPresetUrl(detectedUrl);
+        setSelectedPresetText('');
+        setSelectedPresetArtist('');
+        executeConversion({ streamingUrl: detectedUrl });
+        return;
       }
 
       // If no streaming link is found, treat as text query (Japanese song title / artist)
