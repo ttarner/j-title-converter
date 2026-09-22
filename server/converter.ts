@@ -20,6 +20,7 @@ const KATAKANA_LOANWORDS: Record<string, string> = {
   'ドライフラワー': 'Dry Flower',
   'フラワー': 'Flower',
   'プレテンダー': 'Pretender',
+  'ライアー': 'Liar',
   'サディスティック': 'Sadistic',
   '丸ノ内サディスティック': 'Marunouchi Sadistic',
   'モンスター': 'Monster',

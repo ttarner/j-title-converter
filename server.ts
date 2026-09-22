@@ -127,6 +127,30 @@ async function startServer() {
             });
           }
           console.warn('Streaming link metadata unavailable; using shared title text as fallback.');
+          const srv: 'spotify' | 'apple_music' | 'youtube' | 'shazam' =
+            potentialUrl.includes('shazam.com') || potentialUrl.includes('shz.am')
+              ? 'shazam'
+              : potentialUrl.includes('spotify.com')
+              ? 'spotify'
+              : potentialUrl.includes('apple.com')
+              ? 'apple_music'
+              : 'youtube';
+          const srvName: 'Spotify' | 'Apple Music' | 'YouTube Music' | 'Shazam' =
+            srv === 'shazam'
+              ? 'Shazam'
+              : srv === 'spotify'
+              ? 'Spotify'
+              : srv === 'apple_music'
+              ? 'Apple Music'
+              : 'YouTube Music';
+
+          streamingTrackInfo = {
+            service: srv,
+            serviceName: srvName,
+            title: inputText,
+            artist: inputArtist,
+            url: potentialUrl,
+          };
         } else {
           streamingTrackInfo = resolved;
           inputText = resolved.title;

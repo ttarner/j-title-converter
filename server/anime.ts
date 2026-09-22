@@ -16,6 +16,20 @@ const POPULAR_ANIME_THEMES: Array<{
   season?: string;
 }> = [
   {
+    keywords: ['ライアー', 'liar'],
+    artistKeywords: ['kucci', 'クッチ'],
+    anime: 'Chitose Is in the Ramune Bottle (千歳くんはラムネ瓶のなか)',
+    animeWesternTitle: 'Chitose Is in the Ramune Bottle',
+    animeJapaneseTitle: '千歳くんはラムネ瓶のなか',
+    myAnimeListUrl: 'https://myanimelist.net/anime/58564/Chitose-kun_wa_Ramune_Bin_no_Naka',
+    crunchyrollUrl: 'https://www.crunchyroll.com/search?q=Chitose+Is+in+the+Ramune+Bottle',
+    themeType: 'Opening',
+    themeName: 'Opening 1 (OP1)',
+    slug: 'OP1',
+    year: 2025,
+    season: 'Fall',
+  },
+  {
     keywords: ['残響散歌', 'zankyou sanka', 'zankyosanka', 'zankyou zanka'],
     artistKeywords: ['aimer'],
     anime: 'Demon Slayer: Kimetsu no Yaiba – Entertainment District Arc',

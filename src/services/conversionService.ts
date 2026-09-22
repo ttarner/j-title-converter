@@ -40,6 +40,31 @@ async function executeClientSideConversion(params: ConvertRequestParams): Promis
           'Could not retrieve song details from the streaming link. Please verify that the track is public.'
         );
       }
+      // If link metadata could not be fetched directly, build streaming info from shared text fallback
+      const srv: 'spotify' | 'apple_music' | 'youtube' | 'shazam' =
+        potentialUrl.includes('shazam.com') || potentialUrl.includes('shz.am')
+          ? 'shazam'
+          : potentialUrl.includes('spotify.com')
+          ? 'spotify'
+          : potentialUrl.includes('apple.com')
+          ? 'apple_music'
+          : 'youtube';
+      const srvName: 'Spotify' | 'Apple Music' | 'YouTube Music' | 'Shazam' =
+        srv === 'shazam'
+          ? 'Shazam'
+          : srv === 'spotify'
+          ? 'Spotify'
+          : srv === 'apple_music'
+          ? 'Apple Music'
+          : 'YouTube Music';
+
+      streamingTrackInfo = {
+        service: srv,
+        serviceName: srvName,
+        title: inputText,
+        artist: inputArtist,
+        url: potentialUrl,
+      };
     } else {
       streamingTrackInfo = resolved;
       inputText = resolved.title;

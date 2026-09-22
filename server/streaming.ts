@@ -21,6 +21,70 @@ export function isStreamingUrl(input: string): boolean {
 }
 
 /**
+ * Extracts a streaming track URL (Spotify, Apple Music, YouTube, Shazam) from arbitrary text
+ */
+export function extractStreamingUrlFromText(input: string): string | null {
+  if (!input || typeof input !== 'string') return null;
+
+  const matches = input.matchAll(/https?:\/\/[^\s<>"]+/gi);
+  for (const match of matches) {
+    const candidate = match[0].replace(/[),.;!?]+$/g, '').trim();
+    if (
+      candidate.includes('spotify.com') ||
+      candidate.includes('apple.com') ||
+      candidate.includes('youtube.com') ||
+      candidate.includes('youtu.be') ||
+      candidate.includes('shazam.com') ||
+      candidate.includes('shz.am')
+    ) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parses shared track text (from Shazam, Spotify, Apple Music share sheets) into title and artist
+ */
+export function parseSharedTrackText(input: string, streamingUrl?: string): { text?: string; artist?: string } {
+  if (!input || typeof input !== 'string') return {};
+
+  let textToParse = input.trim();
+  if (streamingUrl && textToParse.includes(streamingUrl)) {
+    textToParse = textToParse.slice(0, textToParse.indexOf(streamingUrl)).trim();
+  }
+
+  if (!textToParse) return {};
+
+  // Case 1: Japanese possessive pattern (e.g. "Kucciのライアー")
+  const noMatch = textToParse.match(/^([^「」\s]+)の([^\s]+)$/);
+  if (noMatch) {
+    return { artist: noMatch[1].trim(), text: noMatch[2].trim() };
+  }
+
+  // Case 2: Japanese quotes (e.g. 「ライアー」 Kucci or Kucci「ライアー」)
+  const quoteMatch = textToParse.match(/「([^」]+)」/);
+  if (quoteMatch) {
+    const titleCandidate = quoteMatch[1].trim();
+    const rest = textToParse.replace(quoteMatch[0], '').replace(/\s*(?:di|by|de|von|da|[-–—|/])\s*/i, ' ').trim();
+    return { text: titleCandidate, artist: rest || undefined };
+  }
+
+  // Case 3: Multilingual delimiters: "di", "by", "de", "von", "da", "from", "-", "–", "—", "|"
+  const parts = textToParse
+    .split(/\s+(?:di|by|de|von|da|from)\s+|\s*[-–—|/]\s+/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length >= 2) {
+    return { text: parts[0], artist: parts.slice(1).join(' ') };
+  }
+
+  return { text: textToParse };
+}
+
+
+/**
  * Cleans YouTube video titles from MV tags and extracts clean title and artist candidate
  */
 function parseYouTubeTitle(rawTitle: string, authorName?: string): { title: string; artist?: string } {
@@ -227,8 +291,81 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
         }
       }
 
-      // Step 1: If trackId exists, query iTunes lookup API (since modern Shazam IDs match Apple Music / iTunes song IDs)
+      // Step 1: Query Shazam Discovery API (handles Shazam internal track IDs like 842013710)
       if (trackId) {
+        try {
+          const shazamUrl = `https://amp.shazam.com/discovery/v5/ja-JP/JP/web/-/track/${trackId}`;
+          let shazamData: any = null;
+
+          // 1a. Try direct fetch (works on Node.js server and native Capacitor apps)
+          try {
+            const resp = await fetch(shazamUrl, {
+              headers: typeof window === 'undefined' ? { 'User-Agent': 'Mozilla/5.0 (compatible; JTitleRomanizer/1.0)' } : undefined,
+              signal: AbortSignal.timeout(3500),
+            });
+            if (resp.ok) {
+              shazamData = await resp.json();
+            }
+          } catch {
+            // Direct fetch may be blocked by CORS on web browsers (e.g. GitHub Pages)
+          }
+
+          // 1b. Fallback to public CORS proxy if running in web browser
+          if (!shazamData && typeof window !== 'undefined') {
+            try {
+              const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(shazamUrl)}`;
+              const proxyResp = await fetch(proxyUrl, { signal: AbortSignal.timeout(3500) });
+              if (proxyResp.ok) {
+                shazamData = await proxyResp.json();
+              }
+            } catch (proxyErr) {
+              console.warn('Shazam proxy fetch error:', proxyErr);
+            }
+          }
+
+          if (shazamData && shazamData.title) {
+            const adamId = shazamData.trackadamid || shazamData.hub?.actions?.find((a: any) => a.type === 'applemusicplay')?.id;
+            let artwork = shazamData.share?.image || shazamData.images?.background || undefined;
+            let finalTitle = shazamData.title;
+            let finalArtist = shazamData.subtitle || undefined;
+
+            // If Shazam gave us the Apple Music Adam ID, enrich with official iTunes metadata
+            if (adamId) {
+              try {
+                const itResp = await fetch(
+                  `https://itunes.apple.com/lookup?id=${adamId}&country=jp&entity=song`,
+                  { signal: AbortSignal.timeout(3000) }
+                );
+                if (itResp.ok) {
+                  const itData: any = await itResp.json();
+                  if (itData.results && itData.results.length > 0) {
+                    const track = itData.results[0];
+                    if (track.trackName) finalTitle = track.trackName;
+                    if (track.artistName) finalArtist = track.artistName;
+                    if (track.artworkUrl100) {
+                      artwork = track.artworkUrl100.replace('100x100bb.jpg', '600x600bb.jpg');
+                    }
+                  }
+                }
+              } catch (itErr) {
+                console.warn('Shazam adamId iTunes lookup error:', itErr);
+              }
+            }
+
+            return {
+              service: 'shazam',
+              serviceName: 'Shazam',
+              title: finalTitle,
+              artist: finalArtist,
+              artworkUrl: artwork,
+              url,
+            };
+          }
+        } catch (shazamErr) {
+          console.warn('Shazam discovery API error:', shazamErr);
+        }
+
+        // Step 2: Fallback query to iTunes lookup API directly (when trackId is already an Apple Music / iTunes ID)
         try {
           const itunesResp = await fetch(
             `https://itunes.apple.com/lookup?id=${trackId}&country=jp&entity=song`,
@@ -256,7 +393,7 @@ export async function resolveStreamingLink(urlStr: string): Promise<StreamingTra
         }
       }
 
-      // Step 2: If ID lookup didn't match (e.g. legacy Shazam internal ID) but we have a slug, search iTunes
+      // Step 3: If ID lookup didn't match (e.g. legacy Shazam internal ID) but we have a slug, search iTunes
       if (slug) {
         const cleanedSlug = slug.replace(/[-_]+/g, ' ').trim();
         if (cleanedSlug) {

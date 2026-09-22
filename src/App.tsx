@@ -9,6 +9,7 @@ import { SearchProgress } from './components/SearchProgress';
 import { HistoryList } from './components/HistoryList';
 import { ConversionResponse, HistoryItem } from './types';
 import { convertSongTitle } from './services/conversionService';
+import { extractStreamingUrlFromText, parseSharedTrackText } from '../server/streaming';
 import { AlertCircle } from 'lucide-react';
 
 interface SharedData {
@@ -29,41 +30,8 @@ interface ShareReceiverPlugin {
 
 const ShareReceiver = registerPlugin<ShareReceiverPlugin>('ShareReceiver');
 
-const extractStreamingUrlFromText = (input: string): string | null => {
-  if (!input || typeof input !== 'string') return null;
-
-  const matches = input.matchAll(/https?:\/\/[^\s<>"]+/gi);
-  for (const match of matches) {
-    const candidate = match[0].replace(/[),.;!?]+$/g, '').trim();
-    if (
-      candidate.includes('spotify.com') ||
-      candidate.includes('apple.com') ||
-      candidate.includes('youtube.com') ||
-      candidate.includes('youtu.be') ||
-      candidate.includes('shazam.com') ||
-      candidate.includes('shz.am')
-    ) {
-      return candidate;
-    }
-  }
-
-  return null;
-};
-
-const parseSharedTrackText = (input: string, streamingUrl: string): { text?: string; artist?: string } => {
-  const prefix = input.slice(0, input.indexOf(streamingUrl)).trim();
-  if (!prefix) return {};
-
-  const parts = prefix.split(/\s+(?:di|by)\s+|\s+[-|/]\s+/i).map((part) => part.trim()).filter(Boolean);
-  if (parts.length >= 2) {
-    return { text: parts[0], artist: parts.slice(1).join(' ') };
-  }
-
-  return { text: prefix };
-};
-
 // Helper to parse query parameters from URL for iOS Shortcuts, deep links & direct navigation
-const parseQueryFromUrl = (fullUrl?: string): {
+export const parseQueryFromUrl = (fullUrl?: string): {
   streamingUrl?: string;
   text?: string;
   artist?: string;
@@ -85,29 +53,58 @@ const parseQueryFromUrl = (fullUrl?: string): {
   try {
     const params = new URLSearchParams(searchStr);
 
-    // Check explicit URL / link params
+    let extractedUrl: string | undefined = undefined;
+    let extractedText: string | undefined = undefined;
+    let extractedArtist: string | undefined = params.get('artist')?.trim() || undefined;
+
+    // 1. Check explicit URL / link params
     const rawUrl = params.get('url') || params.get('link') || params.get('stream');
     if (rawUrl) {
-      return { streamingUrl: rawUrl.trim() };
-    }
-
-    // Check 'q' (general query which could be a streaming link OR Japanese song name)
-    const q = params.get('q');
-    const artist = params.get('artist') || undefined;
-
-    if (q) {
-      const trimmed = q.trim();
-      const detectedUrl = extractStreamingUrlFromText(trimmed);
-      if (detectedUrl) {
-        return { streamingUrl: detectedUrl };
+      const trimmedRaw = rawUrl.trim();
+      const detected = extractStreamingUrlFromText(trimmedRaw);
+      if (detected) {
+        extractedUrl = detected;
+        const parsed = parseSharedTrackText(trimmedRaw, detected);
+        if (parsed.text && !extractedText) extractedText = parsed.text;
+        if (parsed.artist && !extractedArtist) extractedArtist = parsed.artist;
+      } else {
+        extractedUrl = trimmedRaw;
       }
-      return { text: trimmed, artist };
     }
 
-    // Check 'text' or 'title' param
-    const text = params.get('text') || params.get('title');
-    if (text) {
-      return { text: text.trim(), artist };
+    // 2. Check 'q' (general query which could be a streaming link OR Japanese song name OR shared track text)
+    const q = params.get('q');
+    if (q) {
+      const trimmedQ = q.trim();
+      const detectedInQ = extractStreamingUrlFromText(trimmedQ);
+      if (detectedInQ) {
+        if (!extractedUrl) extractedUrl = detectedInQ;
+        const parsed = parseSharedTrackText(trimmedQ, detectedInQ);
+        if (parsed.text && !extractedText) extractedText = parsed.text;
+        if (parsed.artist && !extractedArtist) extractedArtist = parsed.artist;
+      } else if (!extractedText) {
+        const parsed = parseSharedTrackText(trimmedQ);
+        if (parsed.text) {
+          extractedText = parsed.text;
+          if (parsed.artist && !extractedArtist) extractedArtist = parsed.artist;
+        } else {
+          extractedText = trimmedQ;
+        }
+      }
+    }
+
+    // 3. Check 'text' or 'title' param
+    const textParam = params.get('text') || params.get('title');
+    if (textParam && !extractedText) {
+      extractedText = textParam.trim();
+    }
+
+    if (extractedUrl || extractedText) {
+      return {
+        streamingUrl: extractedUrl,
+        text: extractedText,
+        artist: extractedArtist,
+      };
     }
   } catch (e) {
     console.warn('Error parsing URL query:', e);
@@ -129,54 +126,6 @@ export default function App() {
   const progressSectionRef = useRef<HTMLDivElement>(null);
   const resultSectionRef = useRef<HTMLDivElement>(null);
 
-  // Helper to parse query parameters from URL for iOS Shortcuts / direct navigation
-  const parseUrlQuery = (): {
-    streamingUrl?: string;
-    text?: string;
-    artist?: string;
-  } | null => {
-    if (typeof window === 'undefined') return null;
-
-    let searchStr = window.location.search;
-    if (!searchStr && window.location.hash.includes('?')) {
-      searchStr = window.location.hash.substring(window.location.hash.indexOf('?'));
-    }
-
-    if (!searchStr) return null;
-
-    try {
-      const params = new URLSearchParams(searchStr);
-
-      // Check explicit URL / link params
-      const rawUrl = params.get('url') || params.get('link') || params.get('stream');
-      if (rawUrl) {
-        return { streamingUrl: rawUrl.trim() };
-      }
-
-      // Check 'q' (general query which could be a streaming link OR Japanese song name)
-      const q = params.get('q');
-      const artist = params.get('artist') || undefined;
-
-      if (q) {
-        const trimmed = q.trim();
-        const detectedUrl = extractStreamingUrlFromText(trimmed);
-        if (detectedUrl) {
-          return { streamingUrl: detectedUrl };
-        }
-        return { text: trimmed, artist };
-      }
-
-      // Check 'text' or 'title' param
-      const text = params.get('text') || params.get('title');
-      if (text) {
-        return { text: text.trim(), artist };
-      }
-    } catch (e) {
-      console.warn('Error parsing URL query:', e);
-    }
-
-    return null;
-  };
 
   // Persisted History state
   const [history, setHistory] = useState<HistoryItem[]>(() => {
@@ -242,6 +191,12 @@ export default function App() {
         url.search = '';
         if (params.streamingUrl) {
           url.searchParams.set('url', params.streamingUrl);
+          if (params.text) {
+            url.searchParams.set('title', params.text);
+          }
+          if (params.artist) {
+            url.searchParams.set('artist', params.artist);
+          }
         } else if (params.text) {
           url.searchParams.set('q', params.text);
           if (params.artist) {
@@ -358,28 +313,28 @@ export default function App() {
     // 1. Check browser / web URL query parameters
     const initialQuery = parseQueryFromUrl();
     if (initialQuery) {
-      if (initialQuery.streamingUrl) {
-        setSelectedPresetUrl(initialQuery.streamingUrl);
-        executeConversion({ streamingUrl: initialQuery.streamingUrl });
-      } else if (initialQuery.text) {
-        setSelectedPresetText(initialQuery.text);
-        if (initialQuery.artist) setSelectedPresetArtist(initialQuery.artist);
-        executeConversion({ text: initialQuery.text, artist: initialQuery.artist });
-      }
+      if (initialQuery.streamingUrl) setSelectedPresetUrl(initialQuery.streamingUrl);
+      if (initialQuery.text) setSelectedPresetText(initialQuery.text);
+      if (initialQuery.artist) setSelectedPresetArtist(initialQuery.artist);
+      executeConversion({
+        streamingUrl: initialQuery.streamingUrl,
+        text: initialQuery.text,
+        artist: initialQuery.artist,
+      });
     }
 
     // 2. Support browser Back/Forward navigation with query URLs
     const handlePopState = () => {
       const popQuery = parseQueryFromUrl();
       if (popQuery) {
-        if (popQuery.streamingUrl) {
-          setSelectedPresetUrl(popQuery.streamingUrl);
-          executeConversion({ streamingUrl: popQuery.streamingUrl });
-        } else if (popQuery.text) {
-          setSelectedPresetText(popQuery.text);
-          if (popQuery.artist) setSelectedPresetArtist(popQuery.artist);
-          executeConversion({ text: popQuery.text, artist: popQuery.artist });
-        }
+        if (popQuery.streamingUrl) setSelectedPresetUrl(popQuery.streamingUrl);
+        if (popQuery.text) setSelectedPresetText(popQuery.text);
+        if (popQuery.artist) setSelectedPresetArtist(popQuery.artist);
+        executeConversion({
+          streamingUrl: popQuery.streamingUrl,
+          text: popQuery.text,
+          artist: popQuery.artist,
+        });
       }
     };
     window.addEventListener('popstate', handlePopState);
@@ -389,13 +344,15 @@ export default function App() {
       CapacitorApp.addListener('appUrlOpen', (event) => {
         if (event?.url) {
           const parsed = parseQueryFromUrl(event.url);
-          if (parsed?.streamingUrl) {
-            setSelectedPresetUrl(parsed.streamingUrl);
-            executeConversion({ streamingUrl: parsed.streamingUrl });
-          } else if (parsed?.text) {
-            setSelectedPresetText(parsed.text);
+          if (parsed) {
+            if (parsed.streamingUrl) setSelectedPresetUrl(parsed.streamingUrl);
+            if (parsed.text) setSelectedPresetText(parsed.text);
             if (parsed.artist) setSelectedPresetArtist(parsed.artist);
-            executeConversion({ text: parsed.text, artist: parsed.artist });
+            executeConversion({
+              streamingUrl: parsed.streamingUrl,
+              text: parsed.text,
+              artist: parsed.artist,
+            });
           }
         }
       }).then((handle) => {

@@ -16,6 +16,7 @@ import {
   Zap,
 } from 'lucide-react';
 import * as wanakana from 'wanakana';
+import { extractStreamingUrlFromText, parseSharedTrackText } from '../../server/streaming';
 
 interface SearchAndUploadProps {
   onConvert: (params: {
@@ -141,16 +142,38 @@ export const SearchAndUpload: React.FC<SearchAndUploadProps> = ({
 
   const handleLinkSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!streamingUrl.trim() || isLoading) return;
-    onConvert({ streamingUrl: streamingUrl.trim() });
+    const raw = streamingUrl.trim();
+    if (!raw || isLoading) return;
+
+    const detected = extractStreamingUrlFromText(raw) || raw;
+    const parsed = parseSharedTrackText(raw, detected);
+    onConvert({
+      streamingUrl: detected,
+      text: parsed.text,
+      artist: parsed.artist,
+    });
   };
 
   const handleTextSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputText.trim() || isLoading) return;
+    const raw = inputText.trim();
+    if (!raw || isLoading) return;
+
+    const detected = extractStreamingUrlFromText(raw);
+    if (detected) {
+      const parsed = parseSharedTrackText(raw, detected);
+      onConvert({
+        streamingUrl: detected,
+        text: parsed.text,
+        artist: inputArtist.trim() || parsed.artist,
+      });
+      return;
+    }
+
+    const parsed = parseSharedTrackText(raw);
     onConvert({
-      text: inputText.trim(),
-      artist: inputArtist.trim() || undefined,
+      text: parsed.text || raw,
+      artist: inputArtist.trim() || parsed.artist || undefined,
     });
   };
 
@@ -307,7 +330,8 @@ export const SearchAndUpload: React.FC<SearchAndUploadProps> = ({
 
             <input
               id="streaming-url-input"
-              type="url"
+              type="text"
+              inputMode="url"
               value={streamingUrl}
               onChange={(e) => setStreamingUrl(e.target.value)}
               placeholder="Paste Spotify, Apple Music, YouTube, or Shazam link..."
